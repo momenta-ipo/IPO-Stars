@@ -14,7 +14,7 @@
 
     /* ── z 层叠 ──
        0: kv 底图
-       1: fx-cv  光束+粒子
+       1: fx-cv  背景视频
        2: floaters  3D浮动元素
        3: spot-cv 光斑
        4: fire-cv 发射粒子
@@ -154,7 +154,7 @@
       50%      { background-position:68% 51%; }
     }
 
-    #fx-cv   { position:absolute; inset:0; z-index:1; pointer-events:none; }
+    #fx-cv   { position:absolute; inset:0; z-index:1; pointer-events:none; width:100%; height:100%; object-fit:cover; }
 
     /* ── 3D 浮动建模元素 ── */
     #floaters { position:absolute; inset:0; z-index:2; pointer-events:none; }
@@ -455,6 +455,25 @@
       cursor:pointer; font-family:inherit; text-align:center; backdrop-filter:blur(6px);
     }
 
+    /* ── 移动端保存图片弹层（长按保存兜底方案）── */
+    #img-save-modal {
+      position:fixed; inset:0; z-index:50;
+      background:rgba(4,10,30,.92);
+      display:flex; align-items:center; justify-content:center; padding:28px;
+      opacity:0; pointer-events:none; transition:opacity .3s;
+    }
+    #img-save-modal.open { opacity:1; pointer-events:all; }
+    .ism-inner { width:100%; max-width:360px; display:flex; flex-direction:column; align-items:center; }
+    #img-save-pic {
+      width:100%; border-radius:20px; box-shadow:0 16px 56px rgba(0,0,0,.5);
+      -webkit-touch-callout:default; -webkit-user-select:none; user-select:none;
+    }
+    .ism-tip { color:rgba(255,255,255,.85); font-size:14px; margin:18px 0 22px; text-align:center; letter-spacing:.5px; }
+    .ism-close {
+      background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); color:#fff;
+      padding:11px 32px; border-radius:14px; font-size:14px; cursor:pointer; font-family:inherit;
+    }
+
     /* ── 光斑 Tooltip ── */
     .spot-tip {
       position:fixed; z-index:20;
@@ -519,7 +538,9 @@
     <div class="bf bf-4"></div>
   </div>
   <div id="kv"></div>
-  <canvas id="fx-cv"></canvas>
+  <video id="fx-cv" autoplay muted loop playsinline webkit-playsinline="true" preload="auto">
+    <source src="assets/fx-bg.mp4" type="video/mp4">
+  </video>
   <img id="site-logo" src="assets/momenta-logo-white.png" alt="Momenta">
   <img id="robo-logo" src="assets/robo-flywheel.png" alt="Robo飞轮">
 
@@ -614,6 +635,15 @@
     </div>
   </div>
 
+  <!-- 移动端保存图片兜底弹层：iOS Safari / 微信内置浏览器等不支持 <a download> 时，改为长按图片保存 -->
+  <div id="img-save-modal">
+    <div class="ism-inner">
+      <img id="img-save-pic" src="" alt="我的祝福卡">
+      <div class="ism-tip">长按上方图片，选择"保存图像"即可保存到手机相册</div>
+      <button class="ism-close" onclick="closeImgSaveModal()">关闭</button>
+    </div>
+  </div>
+
   <!-- 欢迎遮罩（首次进入显示） -->
   <div id="welcome">
     <div class="wc-card">
@@ -642,161 +672,22 @@ const _LOGO_URI="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAChQAAAGmCAYAAACeU
 //  CANVAS 同步尺寸
 // ════════════════════════════════════════════
 const shell  = document.getElementById('shell');
-const fxCV   = document.getElementById('fx-cv');
+const fxVideo = document.getElementById('fx-cv');
 const spotCV = document.getElementById('spot-cv');
 const fireCV = document.getElementById('fire-cv');
-const fxX    = fxCV.getContext('2d');
 const spotX  = spotCV.getContext('2d');
 const fireX  = fireCV.getContext('2d');
 
 function syncSize() {
   const W = shell.offsetWidth, H = shell.offsetHeight;
-  [fxCV, spotCV, fireCV].forEach(c => { c.width = W; c.height = H; });
-  initFX(W, H);
+  [spotCV, fireCV].forEach(c => { c.width = W; c.height = H; });
 }
 window.addEventListener('resize', syncSize);
 
 // ════════════════════════════════════════════
-//  FX LAYER：光束 + 粒子 + 极光球 + 脉冲环
+//  FX LAYER：视频背景（原 canvas 光束/悬浮球/脉冲环动效，移动端开销太大，改用预渲染视频）
 // ════════════════════════════════════════════
-let shafts = [], fxPts = [], orbs = [], goldOrbs = [], pulseTick = 0;
-let fwPlaying = false;  // 飞轮动画播放时暂停背景脉冲环
-
-function initFX(W, H) {
-  // 黄金浮动小球（与 preloader 同款，正弦游走路径）
-  goldOrbs = Array.from({length: 8}, (_, i) => ({
-    x0: 0.08 + Math.random() * 0.84,
-    y0: 0.08 + Math.random() * 0.84,
-    r:   11 + Math.random() * 18,
-    wx:  0.06 + Math.random() * 0.10,
-    wy:  0.05 + Math.random() * 0.08,
-    ax:  0.14 + Math.random() * 0.20,
-    ay:  0.12 + Math.random() * 0.16,
-    ph:  i * 0.78,
-    blur: 8 + Math.random() * 10,
-    col: i % 3 === 0 ? '255,195,45' : i % 3 === 1 ? '255,148,28' : '255,220,75',
-    opa: 0.45 + Math.random() * 0.25,
-  }));
-
-  shafts = Array.from({ length: 6 }, (_, i) => ({
-    x:      -W * 0.1 + i * W * 0.24,
-    w:      28 + Math.random() * 80,
-    speed:  0.12 + Math.random() * 0.14,
-    op:     0,
-    target: 0.05 + Math.random() * 0.07,
-    phase:  Math.random() * Math.PI * 2,
-  }));
-
-  fxPts = Array.from({ length: 28 }, () => ({
-    x:   Math.random() * W,
-    y:   Math.random() * H,
-    r:   0.5 + Math.random() * 2.2,
-    vy:  -(0.18 + Math.random() * 0.45),
-    vx:  (Math.random() - 0.5) * 0.18,
-    op:  0.08 + Math.random() * 0.45,
-    sp:  0.3 + Math.random() * 1.1,
-    ph:  Math.random() * Math.PI * 2,
-    col: Math.random() > 0.55 ? '140,210,255' : '255,255,255',
-  }));
-
-  // 极光漂移球：4 个大辉光缓慢游走
-  orbs = Array.from({ length: 4 }, (_, i) => ({
-    x:   W * (0.12 + i * 0.26),
-    y:   H * (0.18 + Math.random() * 0.55),
-    r:   90 + Math.random() * 130,
-    vx:  (Math.random() - 0.5) * 0.28,
-    vy:  (Math.random() - 0.5) * 0.13,
-    op:  0.038 + Math.random() * 0.052,
-    ph:  Math.random() * Math.PI * 2,
-    col: i % 2 === 0 ? '70,150,255' : '100,220,255',
-  }));
-}
-
-(function fxLoop() {
-  const W = fxCV.width, H = fxCV.height;
-  fxX.clearRect(0, 0, W, H);
-  const t = Date.now() / 1000;
-
-  // ── 光束 ──
-  shafts.forEach(s => {
-    s.op += (s.target * (0.6 + 0.4 * Math.sin(t * 0.38 + s.phase)) - s.op) * 0.011;
-    fxX.save();
-    fxX.translate(s.x, -H * 0.1);
-    fxX.rotate(-0.44);
-    const g = fxX.createLinearGradient(0, 0, 0, H * 1.7);
-    g.addColorStop(0,    'rgba(255,255,255,0)');
-    g.addColorStop(0.15, `rgba(255,255,255,${s.op})`);
-    g.addColorStop(0.85, `rgba(255,255,255,${s.op * 0.5})`);
-    g.addColorStop(1,    'rgba(255,255,255,0)');
-    fxX.fillStyle = g;
-    fxX.fillRect(-s.w / 2, 0, s.w, H * 1.7);
-    fxX.restore();
-    s.x += s.speed;
-    if (s.x > W * 1.2) s.x = -W * 0.18;
-  });
-
-  // ── 极光漂移球 ──
-  orbs.forEach(o => {
-    o.x += o.vx; o.y += o.vy;
-    if (o.x < -o.r*2) o.x = W + o.r;
-    if (o.x > W + o.r*2) o.x = -o.r;
-    if (o.y < -o.r*2) o.y = H + o.r;
-    if (o.y > H + o.r*2) o.y = -o.r;
-    const op = o.op * (0.65 + 0.35 * Math.sin(t * 0.25 + o.ph));
-    const g = fxX.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-    g.addColorStop(0,   `rgba(${o.col},${op})`);
-    g.addColorStop(0.45,`rgba(${o.col},${op * 0.28})`);
-    g.addColorStop(1,   'transparent');
-    fxX.fillStyle = g;
-    fxX.beginPath(); fxX.arc(o.x, o.y, o.r, 0, Math.PI * 2); fxX.fill();
-  });
-
-  // ── 黄金浮动小球 ──
-  fxX.save();
-  goldOrbs.forEach(o => {
-    const x = (o.x0 + o.ax * Math.sin(t * o.wx + o.ph)) * W;
-    const y = (o.y0 + o.ay * Math.cos(t * o.wy + o.ph * 0.8)) * H;
-    const pulse = o.opa + 0.14 * Math.sin(t * 1.1 + o.ph);
-    fxX.filter = `blur(${o.blur}px)`;
-    fxX.beginPath(); fxX.arc(x, y, o.r, 0, Math.PI * 2);
-    fxX.fillStyle = `rgba(${o.col},${pulse})`;
-    fxX.fill();
-  });
-  fxX.filter = 'none';
-  fxX.restore();
-
-  // ── 飞轮中心脉冲扩散环（飞轮动画播放时暂停）──
-  if (!fwPlaying) {
-    pulseTick += 0.005;
-    const fwX = W * 0.63, fwY = H * 0.47, base = Math.min(W, H);
-    [0, 0.34, 0.67].forEach(offset => {
-      const rt = (pulseTick + offset) % 1.0;
-      const r  = rt * base * 0.42;
-      const op = (1 - rt) * 0.055;
-      if (op < 0.001) return;
-      fxX.beginPath(); fxX.arc(fwX, fwY, r, 0, Math.PI * 2);
-      fxX.strokeStyle = `rgba(120,195,255,${op})`;
-      fxX.lineWidth = 1.8;
-      fxX.stroke();
-    });
-  }
-
-  // ── 上升粒子 ──
-  fxPts.forEach(p => {
-    const op = p.op * (0.5 + 0.5 * Math.sin(t * p.sp + p.ph));
-    const g2 = fxX.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
-    g2.addColorStop(0, `rgba(${p.col},${op * 0.4})`);
-    g2.addColorStop(1, 'transparent');
-    fxX.fillStyle = g2;
-    fxX.beginPath(); fxX.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2); fxX.fill();
-    fxX.beginPath(); fxX.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    fxX.fillStyle = `rgba(${p.col},${op})`; fxX.fill();
-    p.x += p.vx; p.y += p.vy;
-    if (p.y < -6) { p.y = H + 6; p.x = Math.random() * W; }
-  });
-
-  requestAnimationFrame(fxLoop);
-})();
+let bgPaused = false;   // 全屏面板（写祝福/卡片）打开时暂停背景动画，移动端性能优化
 
 // ════════════════════════════════════════════
 //  DATA
@@ -832,6 +723,7 @@ const DECO_STARS = (function() {
 })();
 
 (function spotLoop() {
+  if (bgPaused) { requestAnimationFrame(spotLoop); return; }
   const W = spotCV.width, H = spotCV.height;
   spotX.clearRect(0, 0, W, H);
   const t = Date.now() / 1000;
@@ -862,8 +754,8 @@ const DECO_STARS = (function() {
     drawStar(s.xr*W, s.yr*H, s.baseR, s.sp, s.ph, '180,220,255', '120,190,255');
   });
 
-  // 用户已提交的心愿光点（较暗，纯装饰）
-  entries.forEach(entry => {
+  // 用户已提交的心愿光点（较暗，纯装饰；只画最近 80 条，避免数据积累后拖慢移动端）
+  entries.slice(-80).forEach(entry => {
     const { x, y } = spotPos(entry, W, H);
     const sr = seededRand(entry.id % 999983 + 7); sr(); sr();
     drawStar(x, y, 1.8 + sr()*1.4, 0.5+sr()*1.0, sr()*Math.PI*2, '255,255,255', '200,230,255');
@@ -886,11 +778,21 @@ function closeWelcome() {
 }
 function openWrite() {
   closeWelcome();
+  bgPaused = true; // 面板全屏覆盖背景动画，暂停以降低移动端功耗与卡顿
+  fxVideo.pause();
   document.getElementById('write-panel').classList.add('open');
   setTimeout(() => document.getElementById('f-name').focus(), 480);
 }
-function closeWrite() { document.getElementById('write-panel').classList.remove('open'); }
-function closeCard()  { document.getElementById('card-panel').classList.remove('open'); }
+function closeWrite() {
+  bgPaused = false;
+  fxVideo.play();
+  document.getElementById('write-panel').classList.remove('open');
+}
+function closeCard() {
+  bgPaused = false;
+  fxVideo.play();
+  document.getElementById('card-panel').classList.remove('open');
+}
 function ft(text) {
   document.getElementById('f-msg').value = text;
   document.getElementById('fcc').textContent = text.length;
@@ -936,6 +838,8 @@ function doSubmit() {
     const dlBtn = document.getElementById('dl-btn');
     dlBtn.textContent = '生成中…';
     dlBtn.disabled = true;
+    bgPaused = true; // 卡片面板全屏覆盖背景动画，暂停以降低移动端卡顿
+    fxVideo.pause();
     document.getElementById('card-panel').classList.add('open');
     buildCardCanvas(entry);
   });
@@ -957,7 +861,6 @@ function flyToSpot(entry, onDone) {
   const cpx = sx + (fwX - sx) * 0.4 + (Math.random() - .5) * 80;
   const cpy = fwY - H * 0.32;   // 高弧，从下方飞向中心
   const dur = 2000, t0 = Date.now();
-  fwPlaying = true;
 
   let phase = 'fly';
   let burstT = 0, fwT = 0;
@@ -1101,7 +1004,7 @@ function flyToSpot(entry, onDone) {
       drawFlywheel();
       if (!toastDone && fwT > 0.6) { toastDone=true; showWishToast(); }
       if (fwT < 2.8) { requestAnimationFrame(step); }
-      else { fireX.clearRect(0,0,W,H); fwPlaying=false; onDone(); }
+      else { fireX.clearRect(0,0,W,H); onDone(); }
     }
   }
   step();
@@ -1299,11 +1202,47 @@ function buildCardCanvas(entry) {
   img.src = _KV_URI;
 }
 
-function downloadCard() {
+function isMobileUA() {
+  return /iPhone|iPad|iPod|Android|Mobile|MicroMessenger/i.test(navigator.userAgent);
+}
+
+function openImgSaveModal() {
+  document.getElementById('img-save-pic').src = window._cardDataURL;
+  document.getElementById('img-save-modal').classList.add('open');
+}
+
+function closeImgSaveModal() {
+  document.getElementById('img-save-modal').classList.remove('open');
+}
+
+async function downloadCard() {
   if (!window._cardDataURL) return;
+  const fileName = window._cardFileName || 'momenta-ipo-wish.png';
+
+  // 优先尝试系统分享/保存面板（iOS Safari 15+、部分安卓浏览器支持）
+  if (navigator.share) {
+    try {
+      const blob = await (await fetch(window._cardDataURL)).blob();
+      const file = new File([blob], fileName, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // 用户主动取消分享
+    }
+  }
+
+  // 移动端（尤其 iOS Safari / 微信内置浏览器）不支持 <a download>，改为长按图片保存兜底
+  if (isMobileUA()) {
+    openImgSaveModal();
+    return;
+  }
+
+  // 桌面浏览器：常规触发下载
   const a = document.createElement('a');
   a.href = window._cardDataURL;
-  a.download = window._cardFileName || 'momenta-ipo-wish.png';
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
