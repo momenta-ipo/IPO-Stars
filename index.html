@@ -102,6 +102,12 @@
       text-align:center; white-space:nowrap;
       margin-bottom:clamp(14px,2vw,24px);
     }
+    .pl-headline-en {
+      display:inline-block;
+      font-size:clamp(11px,1.4vw,15px);
+      font-weight:600; opacity:.75;
+      letter-spacing:.5px; margin-top:6px;
+    }
     .pl-headline-sub {
       display:inline-block;
       font-size:clamp(14px,1.8vw,18px);
@@ -396,6 +402,7 @@
     }
     .upload-box.has-img .upload-placeholder { display:none; }
     .upload-box.has-img .upload-preview { display:block; }
+    .upload-box.has-img { height:auto; aspect-ratio:3/2; }
     .upload-remove {
       position:absolute; top:8px; right:8px; z-index:2;
       width:24px; height:24px; border-radius:50%; border:none;
@@ -489,6 +496,23 @@
       cursor:pointer; font-family:inherit; text-align:center; backdrop-filter:blur(6px);
     }
 
+    /* ── 生成中提示 ── */
+    #gen-toast {
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      z-index:60; display:flex; flex-direction:column; align-items:center; gap:14px;
+      background:rgba(0,14,52,.92); color:rgba(255,255,255,.92);
+      padding:26px 34px; border-radius:16px; text-align:center;
+      font-size:14px; letter-spacing:.5px;
+      opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    #gen-toast.show { opacity:1; }
+    .gen-spinner {
+      width:28px; height:28px; border-radius:50%;
+      border:3px solid rgba(255,255,255,.25); border-top-color:#fff;
+      animation:gen-spin .8s linear infinite;
+    }
+    @keyframes gen-spin { to { transform:rotate(360deg); } }
+
     /* ── 移动端保存图片弹层（长按保存兜底方案）── */
     #img-save-modal {
       position:fixed; inset:0; z-index:50;
@@ -506,6 +530,33 @@
     .ism-close {
       background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); color:#fff;
       padding:11px 32px; border-radius:14px; font-size:14px; cursor:pointer; font-family:inherit;
+    }
+
+    /* ── 照片裁剪弹层 ── */
+    #crop-modal {
+      position:fixed; inset:0; z-index:120;
+      background:rgba(4,10,30,.93);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    #crop-modal.open { opacity:1; pointer-events:all; }
+    .crop-title { color:#fff; font-size:16px; font-weight:600; margin-bottom:16px; }
+    .crop-hint { color:rgba(255,255,255,.55); font-size:12px; margin-top:10px; }
+    #crop-frame-inner {
+      position:relative; overflow:hidden;
+      border-radius:10px; border:2px solid rgba(255,255,255,.7);
+      touch-action:none; cursor:grab;
+    }
+    #crop-frame-inner:active { cursor:grabbing; }
+    #crop-img-el { position:absolute; max-width:none; max-height:none; user-select:none; -webkit-user-select:none; pointer-events:none; }
+    .crop-btns { display:flex; gap:14px; margin-top:22px; }
+    .crop-btn-cancel {
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); color:#fff;
+      padding:11px 30px; border-radius:12px; font-size:15px; cursor:pointer; font-family:inherit;
+    }
+    .crop-btn-ok {
+      background:#0068eb; border:none; color:#fff;
+      padding:11px 30px; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit;
     }
 
     /* ── 光斑 Tooltip ── */
@@ -547,7 +598,7 @@
   <canvas id="pl-canvas"></canvas>
   <div class="pl-inner">
     <img id="pl-logo" src="assets/momenta-logo-white.png" alt="Momenta">
-    <div class="pl-headline" id="pl-headline">Momenta<br>香港交易所主板上市<br><span class="pl-headline-sub">股票代码 06880.HK</span></div>
+    <div class="pl-headline" id="pl-headline">Momenta<br>香港交易所主板上市<br><span class="pl-headline-en">Momenta Listing on HKEX Main Board</span><br><span class="pl-headline-sub">股票代码 06880.HK</span></div>
     <div class="pl-bar-wrap">
       <div class="pl-bar-track">
         <div class="pl-bar-fill" id="pl-bar"></div>
@@ -610,14 +661,16 @@
     </div>
     <div class="fld">
       <div class="lbl">我的感受与期待<span class="req">*</span></div>
-      <textarea class="fi" id="f-msg" placeholder="留下此时此刻最想说的话" maxlength="60"
+      <textarea class="fi" id="f-msg" placeholder="留下此时此刻最想说的话" maxlength="100"
         oninput="document.getElementById('fcc').textContent=this.value.length"></textarea>
-      <div class="cc"><span id="fcc">0</span>/60</div>
+      <div class="cc"><span id="fcc">0</span>/100</div>
       <div class="tips">
-        <button class="tip" onclick="ft('志同道合的我们')">志同道合的我们</button>
+        <button class="tip" onclick="ft('A Big Force of Momentum')">A Big Force of Momentum</button>
         <button class="tip" onclick="ft('Better AI, Better Life.')">Better AI, Better Life.</button>
         <button class="tip" onclick="ft('我们上市了！')">我们上市了！</button>
-        <button class="tip" onclick="ft('十年，挽救百万生命！')">十年，挽救百万生命！</button>
+        <button class="tip" onclick="ft('Ten Years, Save One Million Lives.')">Ten Years, Save One Million Lives.</button>
+        <button class="tip" onclick="ft('物理AI第一股')">物理AI第一股</button>
+        <button class="tip" onclick="ft('Momenta上市腾飞！')">Momenta上市腾飞！</button>
       </div>
     </div>
     <div class="fld">
@@ -665,12 +718,29 @@
     </div>
   </div>
 
+  <!-- 卡片生成中提示 -->
+  <div id="gen-toast">
+    <div class="gen-spinner"></div>
+    <div>正在生成专属纪念卡…</div>
+  </div>
+
   <!-- 移动端保存图片兜底弹层：iOS Safari / 微信内置浏览器等不支持 <a download> 时，改为长按图片保存 -->
   <div id="img-save-modal">
     <div class="ism-inner">
       <img id="img-save-pic" src="" alt="我的纪念卡">
       <div class="ism-tip">长按上方图片，选择"保存图像"即可保存到手机相册</div>
       <button class="ism-close" onclick="closeImgSaveModal()">关闭</button>
+    </div>
+  </div>
+
+  <!-- 照片裁剪弹层 -->
+  <div id="crop-modal">
+    <div class="crop-title">调整照片范围</div>
+    <div id="crop-frame-inner"><img id="crop-img-el" alt="" draggable="false"></div>
+    <div class="crop-hint">拖动图片 · 双指缩放</div>
+    <div class="crop-btns">
+      <button class="crop-btn-cancel" onclick="closeCropModal()">取消</button>
+      <button class="crop-btn-ok" onclick="confirmCrop()">确定</button>
     </div>
   </div>
 
@@ -811,12 +881,20 @@ function closeCard() {
   bgPaused = false;
   shell.classList.remove('bg-anim-paused');
   document.getElementById('card-panel').classList.remove('open');
+  document.getElementById('gen-toast').classList.remove('show');
 }
 function ft(text) {
   const msgEl = document.getElementById('f-msg');
   const combined = msgEl.value ? (msgEl.value + ' ' + text) : text;
-  msgEl.value = combined.slice(0, 60); // 沿用 textarea 的 60 字上限，避免叠加后超出计数
+  msgEl.value = combined.slice(0, 100); // 沿用 textarea 的 100 字上限，避免叠加后超出计数
   document.getElementById('fcc').textContent = msgEl.value.length;
+}
+
+// 祝福区高度固定，字数上限从 60 提到 100 后，短文字保持原字号，长文字按字数分级缩小，避免溢出卡片挡住下面的落款
+function sizeQuoteText(msg) {
+  const len = msg.length;
+  const size = len <= 40 ? 16 : len <= 65 ? 14 : len <= 85 ? 12.5 : 11;
+  document.getElementById('c-quote').style.fontSize = size + 'px';
 }
 
 // ════════════════════════════════════════════
@@ -835,29 +913,127 @@ function showLightToast(msg, ms) {
   setTimeout(() => t.remove(), ms || 1800);
 }
 
+// ── 照片裁剪 ──────────────────────────────────
+const CROP_ASPECT = 3 / 2; // 卡片照片区宽高比
+let _cropImg = null;
+let _ci = { x:0, y:0, scale:1, minScale:1 };
+let _ct = { active:false, lastX:0, lastY:0, lastDist:0 };
+let _cropFW = 0, _cropFH = 0;
+
 function handlePhotoSelect(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
   photoProcessing = true;
   const reader = new FileReader();
-  reader.onerror = () => { photoProcessing = false; removePhoto(); showLightToast('图片读取失败，换一张试试'); };
+  reader.onerror = () => { photoProcessing = false; showLightToast('图片读取失败，换一张试试'); };
   reader.onload = () => {
     loadImage(reader.result).then(img => {
       if (!img.naturalWidth || !img.naturalHeight) throw new Error('empty image');
-      // 压缩到最长边不超过 1600px：跟卡片下载的目标分辨率（约1500px宽）匹配，避免被拉伸变糊，同时控制体积
-      const MAX = 1600;
-      const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
-      const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
-      const oc = document.createElement('canvas');
-      oc.width = w; oc.height = h;
-      oc.getContext('2d').drawImage(img, 0, 0, w, h);
-      selectedPhotoDataURL = oc.toDataURL('image/jpeg', 0.85);
-      document.getElementById('upload-preview').src = selectedPhotoDataURL;
-      document.getElementById('upload-box').classList.add('has-img');
       photoProcessing = false;
-    }).catch(() => { photoProcessing = false; removePhoto(); showLightToast('图片读取失败，换一张试试'); });
+      _openCropModal(img);
+    }).catch(() => { photoProcessing = false; showLightToast('图片读取失败，换一张试试'); });
   };
   reader.readAsDataURL(file);
+}
+
+function _openCropModal(img) {
+  _cropImg = img;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const maxW = Math.min(vw - 32, 380);
+  _cropFW = maxW / CROP_ASPECT <= vh * 0.52 ? maxW : Math.round(vh * 0.52 * CROP_ASPECT);
+  _cropFH = Math.round(_cropFW / CROP_ASPECT);
+  const frame = document.getElementById('crop-frame-inner');
+  frame.style.width = _cropFW + 'px';
+  frame.style.height = _cropFH + 'px';
+  const ms = Math.max(_cropFW / img.naturalWidth, _cropFH / img.naturalHeight);
+  _ci.minScale = ms; _ci.scale = ms;
+  _ci.x = (_cropFW - img.naturalWidth * ms) / 2;
+  _ci.y = (_cropFH - img.naturalHeight * ms) / 2;
+  document.getElementById('crop-img-el').src = img.src;
+  _applyCI();
+  const el = frame;
+  el.ontouchstart = _ctStart; el.ontouchmove = _ctMove; el.ontouchend = _ctEnd;
+  el.onmousedown = _cmDown;
+  document.getElementById('crop-modal').classList.add('open');
+}
+
+function _applyCI() {
+  const el = document.getElementById('crop-img-el');
+  const iW = _cropImg.naturalWidth * _ci.scale;
+  const iH = _cropImg.naturalHeight * _ci.scale;
+  _ci.x = Math.min(0, Math.max(_cropFW - iW, _ci.x));
+  _ci.y = Math.min(0, Math.max(_cropFH - iH, _ci.y));
+  el.style.width = iW + 'px'; el.style.height = iH + 'px';
+  el.style.left = _ci.x + 'px'; el.style.top = _ci.y + 'px';
+}
+
+function _ctStart(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    _ct.lastX = e.touches[0].clientX; _ct.lastY = e.touches[0].clientY; _ct.lastDist = 0;
+  } else {
+    _ct.lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }
+}
+function _ctMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    _ci.x += e.touches[0].clientX - _ct.lastX;
+    _ci.y += e.touches[0].clientY - _ct.lastY;
+    _ct.lastX = e.touches[0].clientX; _ct.lastY = e.touches[0].clientY;
+    _applyCI();
+  } else if (e.touches.length >= 2) {
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    if (_ct.lastDist > 0) {
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const rect = document.getElementById('crop-frame-inner').getBoundingClientRect();
+      const px = cx - rect.left, py = cy - rect.top;
+      const newScale = Math.max(_ci.minScale, _ci.scale * dist / _ct.lastDist);
+      const ix = (px - _ci.x) / _ci.scale, iy = (py - _ci.y) / _ci.scale;
+      _ci.scale = newScale; _ci.x = px - ix * newScale; _ci.y = py - iy * newScale;
+    }
+    _ct.lastDist = dist; _applyCI();
+  }
+}
+function _ctEnd() { _ct.lastDist = 0; }
+
+function _cmDown(e) {
+  let lx = e.clientX, ly = e.clientY;
+  const mv = (e2) => { _ci.x += e2.clientX - lx; _ci.y += e2.clientY - ly; lx = e2.clientX; ly = e2.clientY; _applyCI(); };
+  const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); };
+  document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+  e.preventDefault();
+}
+
+// iOS Safari 上 flex-basis 百分比无法基于 aspect-ratio 派生高度，改用像素值兜底
+function fixBannerHeight() {
+  const card = document.getElementById('the-card');
+  const banner = card && card.querySelector('.card-kv-banner');
+  if (!banner) return;
+  const px = Math.round(card.offsetWidth * 1357 / 2400);
+  banner.style.flexBasis = px + 'px';
+}
+window.addEventListener('resize', fixBannerHeight);
+
+function closeCropModal() {
+  document.getElementById('crop-modal').classList.remove('open');
+  document.getElementById('f-photo').value = '';
+  _cropImg = null;
+}
+
+function confirmCrop() {
+  const srcX = -_ci.x / _ci.scale, srcY = -_ci.y / _ci.scale;
+  const srcW = _cropFW / _ci.scale, srcH = _cropFH / _ci.scale;
+  const outW = 1500, outH = Math.round(outW / CROP_ASPECT);
+  const oc = document.createElement('canvas');
+  oc.width = outW; oc.height = outH;
+  oc.getContext('2d').drawImage(_cropImg, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+  selectedPhotoDataURL = oc.toDataURL('image/jpeg', 0.85);
+  document.getElementById('upload-preview').src = selectedPhotoDataURL;
+  document.getElementById('upload-box').classList.add('has-img');
+  document.getElementById('crop-modal').classList.remove('open');
+  _cropImg = null;
 }
 
 function removePhoto() {
@@ -892,6 +1068,7 @@ function doSubmit() {
   entries.push(entry);
   localStorage.setItem('mo-ipo-26', JSON.stringify(entries));
   document.getElementById('c-quote').textContent = msg;
+  sizeQuoteText(msg);
   document.getElementById('c-name').textContent  = '@' + name;
 
   const cardEl = document.getElementById('the-card');
@@ -908,6 +1085,7 @@ function doSubmit() {
   nameEl.value = ''; msgEl.value = '';
   document.getElementById('fcc').textContent = '0';
   removePhoto();
+  document.getElementById('gen-toast').classList.add('show');
 
   flyToSpot(entry, () => {
     window._cardDataURL = null;
@@ -917,12 +1095,16 @@ function doSubmit() {
     bgPaused = true; // 卡片面板全屏覆盖背景动画，暂停以降低移动端卡顿
     shell.classList.add('bg-anim-paused');
     document.getElementById('card-panel').classList.add('open');
+    fixBannerHeight();
     const myToken = ++cardGenToken;
     // 等卡片面板的淡入过渡（.4s）结束再截图，避免 html2canvas 在面板还半透明时就拍下去
     setTimeout(() => {
       buildCardCanvas(entry, photo, myToken).catch(e => {
         console.warn('buildCardCanvas error', e);
-        if (myToken === cardGenToken) { dlBtn.textContent = '生成失败，重试'; dlBtn.disabled = false; }
+        if (myToken === cardGenToken) {
+          dlBtn.textContent = '生成失败，重试'; dlBtn.disabled = false;
+          document.getElementById('gen-toast').classList.remove('show');
+        }
       });
     }, 450);
   });
@@ -1151,13 +1333,19 @@ async function buildCardCanvas(entry, photoDataURL, token) {
   const cx = canvas.getContext('2d');
   cx.setTransform(1, 0, 0, 1, 0, 0); // html2canvas 渲染完会遗留一个 scale 变换在 context 上，不重置的话后面手绘的图会被再叠加放大一次
 
-  // 用实际 DOM 布局换算每张图该画在输出画布的哪个区域，跟 CSS 布局永远保持一致（不用另外维护一套比例数字）
+  // 用实际 DOM 布局换算每张图该画在输出画布的哪个区域，跟 CSS 布局永远保持一致（不用另外维护一套比例数字）。
+  // 注意：不能直接用上面算好的 scale 去换算——html2canvas 在部分机型（实测 iOS Safari）内部还会
+  // 再乘一次系统的 devicePixelRatio，导致 canvas 实际像素尺寸跟“cardEl 宽度 * scale”对不上，
+  // 手绘的图就会整体错位（比如贴到左边）。这里改成直接拿 canvas 的真实像素尺寸和 cardEl 的 CSS
+  // 尺寸对比算出真实缩放比例，不管 html2canvas 内部怎么处理都能对齐。
   const cardRect = cardEl.getBoundingClientRect();
+  const scaleX = canvas.width / cardRect.width;
+  const scaleY = canvas.height / cardRect.height;
   function toCanvasRect(el) {
     const r = el.getBoundingClientRect();
     return {
-      x: (r.left - cardRect.left) * scale, y: (r.top - cardRect.top) * scale,
-      w: r.width * scale, h: r.height * scale,
+      x: (r.left - cardRect.left) * scaleX, y: (r.top - cardRect.top) * scaleY,
+      w: r.width * scaleX, h: r.height * scaleY,
     };
   }
 
@@ -1172,7 +1360,7 @@ async function buildCardCanvas(entry, photoDataURL, token) {
     cx.drawImage(img, x - (dW - w) / 2, y - (dH - h) / 2, dW, dH);
     cx.restore();
   }
-  const r20 = 20 * scale; // 与 #the-card 的 border-radius:20px 对齐
+  const r20 = 20 * scaleX; // 与 #the-card 的 border-radius:20px 对齐
   redrawSharp(toCanvasRect(cardEl.querySelector('.card-kv-banner')), bannerImg, [r20, r20, 0, 0]);
   if (photoImg) redrawSharp(toCanvasRect(cardEl.querySelector('.card-photo-img')), photoImg, [0, 0, 0, 0]);
 
@@ -1181,6 +1369,7 @@ async function buildCardCanvas(entry, photoDataURL, token) {
   window._cardFileName = `momenta-ipo-${entry.name}.png`;
   dlBtn.textContent = '↓  保存卡片';
   dlBtn.disabled = false;
+  document.getElementById('gen-toast').classList.remove('show');
 }
 
 function isMobileUA() {
