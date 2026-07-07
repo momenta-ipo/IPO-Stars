@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Momenta · 共同开启</title>
+  <title>Momenta</title>
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html, body { width:100%; height:100%; overflow:hidden; background:#1252b5;
@@ -266,6 +266,7 @@
       box-shadow:0 4px 24px rgba(246,125,43,.45), 0 1px 0 rgba(255,255,255,.22) inset;
       transition:transform .15s, background .2s; text-align:center;
     }
+    .btn-main .btn-en { display:block; font-size:10.5px; font-weight:500; letter-spacing:.5px; opacity:.85; margin-top:4px; }
     .btn-main:hover { background:#ff8f42; }
     .btn-main:active { transform:scale(.96); }
 
@@ -370,6 +371,7 @@
     .p-sub { font-size:13px; color:rgba(0,20,80,.45); margin-bottom:22px; }
     .lbl { font-size:11px; color:rgba(0,20,80,.5); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:7px; }
     .lbl .req { color:rgba(220,50,50,.85); margin-left:2px; }
+    .lbl .lbl-en { font-size:9.5px; color:rgba(0,20,80,.35); text-transform:none; letter-spacing:.2px; margin-left:5px; }
     .fld { margin-bottom:16px; }
     input.fi, textarea.fi {
       width:100%; background:#f4f6fb; border:1px solid rgba(0,60,180,.15);
@@ -396,6 +398,7 @@
     .upload-box:active { background:#eef2fb; }
     .upload-placeholder { font-size:13px; color:rgba(0,20,80,.4); text-align:center; line-height:1.6; }
     .upload-placeholder .up-ic { font-size:20px; display:block; margin-bottom:2px; }
+    .upload-placeholder .up-en { font-size:10.5px; color:rgba(0,20,80,.32); display:block; margin-top:2px; }
     .upload-preview {
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; display:none;
@@ -415,6 +418,7 @@
       border:none; padding:17px; border-radius:14px; font-size:16px; font-weight:700;
       letter-spacing:3px; cursor:pointer; font-family:inherit; box-shadow:0 8px 24px rgba(0,68,204,.5); transition:transform .15s;
     }
+    .btn-submit .btn-en { display:block; font-size:10.5px; font-weight:500; letter-spacing:.5px; opacity:.8; margin-top:4px; }
     .btn-submit:active { transform:scale(.97); }
 
     /* ── 卡片面板 ── */
@@ -439,7 +443,7 @@
     /* 卡片整体、banner、照片区的比例都是从设计稿里量出来的精确像素比例，不是拍脑袋估的 */
     #the-card {
       flex-shrink:0; margin:16px 22px 0;
-      border-radius:20px; overflow:hidden; aspect-ratio:750/909;
+      overflow:hidden; aspect-ratio:750/909;
       display:flex; flex-direction:column;
       box-shadow:0 16px 56px rgba(0,0,0,.45);
     }
@@ -448,18 +452,18 @@
     /* 上半：KV Banner —— 直接用设计稿裁出来的成图做背景（含 logo/标题/日期/标语），保证和设计稿完全一致 */
     .card-kv-banner {
       flex:0 0 46.7%;
-      background:url('assets/card-banner-v3.jpg') center / cover no-repeat;
+      background:url('assets/card-banner-textonly.jpg') center / cover no-repeat;
     }
-    #the-card.has-photo .card-kv-banner { flex:0 0 30%; }
+    #the-card.has-photo .card-kv-banner { flex:0 0 30%; background-image:url('assets/card-banner-withphoto.jpg'); }
     /* 中间：我的飞轮时刻（上传照片时才显示）*/
     .card-photo-block { display:none; flex-direction:column; background:#001040; }
     #the-card.has-photo .card-photo-block { display:flex; flex:0 0 35.6%; }
     /* 用背景图而不是 <img object-fit>，因为 html2canvas 不支持 object-fit，但支持 background-size:cover */
     .card-photo-img { flex:1; width:100%; min-height:0; background-size:cover; background-position:center; }
+    /* 用设计稿裁出来的成图做背景（含"我的飞轮时刻"文字），保证和设计稿的流光纹理完全一致 */
     .card-photo-cap {
-      flex-shrink:0; background:#0068eb; color:#fff; text-align:right;
-      font-size:10px; letter-spacing:1px; padding:3px 16px;
-      font-family:'PingFang SC',-apple-system,sans-serif;
+      flex-shrink:0; aspect-ratio:1600/74;
+      background:url('assets/card-photo-cap-bg.jpg') center / cover no-repeat;
     }
     /* 下半：白底祝福区 */
     .card-wish-panel {
@@ -644,7 +648,7 @@
         感谢一路志同道合·A Big Force of Momentum！<br>
         一起创造"有意思·更有意义"的物理AI世界
       </div>
-      <button class="btn-main" onclick="openWrite()">生成我的专属上市纪念卡</button>
+      <button class="btn-main" onclick="openWrite()">生成我的专属上市纪念卡<span class="btn-en">Generate Your Exclusive Listing Commemorate Card</span></button>
     </div>
   </div>
 
@@ -656,11 +660,11 @@
       <button class="close-x" onclick="closeWrite()">×</button>
     </div>
     <div class="fld">
-      <div class="lbl">你的昵称<span class="req">*</span></div>
+      <div class="lbl">你的昵称<span class="lbl-en">Your Nickname</span><span class="req">*</span></div>
       <input type="text" class="fi" id="f-name" placeholder="输入你的昵称（会展示在卡片落款）" maxlength="12">
     </div>
     <div class="fld">
-      <div class="lbl">我的感受与期待<span class="req">*</span></div>
+      <div class="lbl">我的感受与期待<span class="lbl-en">Your Experiences and Expectations</span><span class="req">*</span></div>
       <textarea class="fi" id="f-msg" placeholder="留下此时此刻最想说的话" maxlength="100"
         oninput="document.getElementById('fcc').textContent=this.value.length"></textarea>
       <div class="cc"><span id="fcc">0</span>/100</div>
@@ -674,15 +678,15 @@
       </div>
     </div>
     <div class="fld">
-      <div class="lbl">我的飞轮时刻（可选）</div>
+      <div class="lbl">我的飞轮时刻（可选）<span class="lbl-en">Your Flywheel Moment (Optional)</span></div>
       <div class="upload-box" id="upload-box" onclick="document.getElementById('f-photo').click()">
         <input type="file" id="f-photo" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
-        <div class="upload-placeholder"><span class="up-ic">＋</span>上传一张你在Momenta最难忘的照片（非必填）</div>
+        <div class="upload-placeholder"><span class="up-ic">＋</span>上传一张你在Momenta最难忘的照片（非必填）<span class="up-en">Upload your most memorable photo at Momenta (optional)</span></div>
         <img class="upload-preview" id="upload-preview" alt="预览">
         <button class="upload-remove" id="upload-remove" onclick="event.stopPropagation();removePhoto()">×</button>
       </div>
     </div>
-    <button class="btn-submit" onclick="doSubmit()">生成我的上市纪念卡</button>
+    <button class="btn-submit" onclick="doSubmit()">生成我的上市纪念卡<span class="btn-en">Generate Your Listing Commemorate Card</span></button>
   </div>
 
   <!-- 卡片面板 -->
@@ -696,7 +700,7 @@
         <div class="card-kv-banner" role="img" aria-label="Momenta 香港交易所主板上市"></div>
         <div class="card-photo-block" id="card-photo-block">
           <div class="card-photo-img" id="card-photo-img" role="img" aria-label="我的飞轮时刻"></div>
-          <div class="card-photo-cap">我的飞轮时刻</div>
+          <div class="card-photo-cap" role="img" aria-label="我的飞轮时刻"></div>
         </div>
         <div class="card-wish-panel">
           <div>
@@ -721,7 +725,7 @@
   <!-- 卡片生成中提示 -->
   <div id="gen-toast">
     <div class="gen-spinner"></div>
-    <div>正在生成专属纪念卡…</div>
+    <div>生成纪念中…</div>
   </div>
 
   <!-- 移动端保存图片兜底弹层：iOS Safari / 微信内置浏览器等不支持 <a download> 时，改为长按图片保存 -->
@@ -754,7 +758,7 @@
         感谢一路志同道合·A Big Force of Momentum！<br>
         一起创造"有意思·更有意义"的物理AI世界
       </div>
-      <button class="btn-main" onclick="openWrite()">生成我的专属上市纪念卡</button>
+      <button class="btn-main" onclick="openWrite()">生成我的专属上市纪念卡<span class="btn-en">Generate Your Exclusive Listing Commemorate Card</span></button>
     </div>
   </div>
 </div>
@@ -893,7 +897,7 @@ function ft(text) {
 // 祝福区高度固定，字数上限从 60 提到 100 后，短文字保持原字号，长文字按字数分级缩小，避免溢出卡片挡住下面的落款
 function sizeQuoteText(msg) {
   const len = msg.length;
-  const size = len <= 40 ? 16 : len <= 65 ? 14 : len <= 85 ? 12.5 : 11;
+  const size = len <= 40 ? 16 : len <= 65 ? 15 : len <= 85 ? 14 : 13;
   document.getElementById('c-quote').style.fontSize = size + 'px';
 }
 
@@ -1011,7 +1015,7 @@ function fixBannerHeight() {
   const card = document.getElementById('the-card');
   const banner = card && card.querySelector('.card-kv-banner');
   if (!banner) return;
-  const px = Math.round(card.offsetWidth * 1357 / 2400);
+  const px = Math.round(card.offsetWidth * 1350 / 2400);
   banner.style.flexBasis = px + 'px';
 }
 window.addEventListener('resize', fixBannerHeight);
@@ -1323,10 +1327,13 @@ async function buildCardCanvas(entry, photoDataURL, token) {
   // 所以文字/布局仍交给 html2canvas，但 banner 图和用户照片这两张图之后用原图手动精确重绘一遍。
   const loads = [
     html2canvas(cardEl, { scale, backgroundColor: null, useCORS: true }),
-    loadImage('assets/card-banner-v3.jpg'),
+    loadImage(photoDataURL ? 'assets/card-banner-withphoto.jpg' : 'assets/card-banner-textonly.jpg'),
   ];
-  if (photoDataURL) loads.push(loadImage(photoDataURL));
-  const [canvas, bannerImg, photoImg] = await Promise.all(loads);
+  if (photoDataURL) {
+    loads.push(loadImage(photoDataURL));
+    loads.push(loadImage('assets/card-photo-cap-bg.jpg'));
+  }
+  const [canvas, bannerImg, photoImg, capBgImg] = await Promise.all(loads);
 
   if (token !== cardGenToken) return; // 期间又提交了新的一份，这次的结果已经过期，直接丢弃
 
@@ -1360,13 +1367,13 @@ async function buildCardCanvas(entry, photoDataURL, token) {
     cx.drawImage(img, x - (dW - w) / 2, y - (dH - h) / 2, dW, dH);
     cx.restore();
   }
-  const r20 = 20 * scaleX; // 与 #the-card 的 border-radius:20px 对齐
-  redrawSharp(toCanvasRect(cardEl.querySelector('.card-kv-banner')), bannerImg, [r20, r20, 0, 0]);
+  redrawSharp(toCanvasRect(cardEl.querySelector('.card-kv-banner')), bannerImg, [0, 0, 0, 0]);
   if (photoImg) redrawSharp(toCanvasRect(cardEl.querySelector('.card-photo-img')), photoImg, [0, 0, 0, 0]);
+  if (capBgImg) redrawSharp(toCanvasRect(cardEl.querySelector('.card-photo-cap')), capBgImg, [0, 0, 0, 0]);
 
   const dlBtn = document.getElementById('dl-btn');
   window._cardDataURL  = canvas.toDataURL('image/png');
-  window._cardFileName = `momenta-ipo-${entry.name}.png`;
+  window._cardFileName = `momenta-${entry.name}.png`;
   dlBtn.textContent = '↓  保存卡片';
   dlBtn.disabled = false;
   document.getElementById('gen-toast').classList.remove('show');
@@ -1387,7 +1394,7 @@ function closeImgSaveModal() {
 
 async function downloadCard() {
   if (!window._cardDataURL) return;
-  const fileName = window._cardFileName || 'momenta-ipo-wish.png';
+  const fileName = window._cardFileName || 'momenta-wish.png';
 
   // 优先尝试系统分享/保存面板（iOS Safari 15+、部分安卓浏览器支持）
   if (navigator.share) {
